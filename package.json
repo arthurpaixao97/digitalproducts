@@ -1,0 +1,25 @@
+{
+  "name": "digitalproducts",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev":"nodemon server.js"
+  },
+  "author": "Arthur S.",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongodb": "^6.12.0",
+    "mongoose": "^8.9.2",
+    "node-schedule": "^2.1.1",
+    "nodemon": "^3.1.9",
+    "path": "^0.12.7",
+    "uuid": "^11.0.3"
+  }
+}
