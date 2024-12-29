@@ -1,10 +1,10 @@
 const router = require('express').Router()
 const mw = require('../middlewares/middlewares.js')
 
-const apiUser = require('./api/user_role.js')
-const apiAdmin = require('./api/admin_role.js')
+const apiClient = require('./api/client.js')
+const apiBKF = require('./api/backoffice.js')
 
-router.use('/', apiUser)
-router.use('/admin', mw.session_auth, mw.admin, apiAdmin)
+router.use('/', apiClient)
+router.use('/backoffice', mw.session_auth, mw.rolePermissions('BKF'), apiBKF)
 
 module.exports = router
