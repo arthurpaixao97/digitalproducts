@@ -7,8 +7,12 @@ const mw = require('./middlewares/middlewares.js')
 
 // Load environment variables
 PORT = process.env.PORT
-DB_USERNAME = process.env.DB_USERNAME
-DB_PASSWORD = process.env.DB_PASSWORD
+DB = {
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    domain: process.env.DB_DOMAIN,
+    appname: process.env.DB_APPNAME
+}
 RC_SECRET = process.env.RC_SECRET // Secret for root authentication, may change
 
 const app = express()
@@ -42,6 +46,6 @@ app.use('/root', mw.root_auth(RC_SECRET), rootRouter)
 
 // Start the server and connect to the database
 app.listen(PORT, ()=> {
-    mongoose.connect(`mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@digital-products.nhwfl.mongodb.net/?retryWrites=true&w=majority&appName=digital-products`);
+    mongoose.connect(`mongodb+srv://${DB.username}:${DB.password}@${DB.domain}/?retryWrites=true&w=majority&appName=${DB.appname}`);
     console.log(`Server running on port ${PORT}`)
 })
