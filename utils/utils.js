@@ -1,221 +1,180 @@
-require('dotenv').config()
-const User = require('../db/schemas/users.js')
-const Role = require('../db/schemas/roles.js')
+// Load environment variables from a .env file for configuration
+require('dotenv').config();
+// Import the User and Role models from the database schemas
+const User = require('../db/schemas/users.js');
+const Role = require('../db/schemas/roles.js');
 
-class Utils
-{
-    // Checks if a user has a specific permission
-    async checkPermission(req, permission)
-    {
-        if(req.headers['x-role'] == 'CUSTOM')
-        {
-            const user = await User.findOne({id: req.headers['x-user']})
+// Utility class with various helper methods for managing users, roles, and permissions
+class Utils {
 
-            // Check if user permissions array contains the required permission
-            if(Array.isArray(user.permissions))
-            {
-                for(let i = 0; i < user.permissions.length; i++)
-                {
-                    if(!user.permissions.find(p => p == permission))
-                    {
-                        return false
-                    }
+    // Checks if a user or their role has a specific permission
+    async checkPermission(req, permission) {
+        let ret = true;
+
+        // If the user's role is 'CUSTOM', validate individual user permissions
+        if (req.headers['x-role'] == 'CUSTOM') {
+            const user = await User.findOne({ id: req.headers['x-user'] });
+            this.toArray(permission).forEach(p => {
+                if (!user.permissions.find(perm => perm == p)) {
+                    ret = false; // Return false if any required permission is missing
                 }
-
-                return true
-            }
-
-            if(!user.permissions.find(p => p == permission))
-            {
-                return false
-            }
-
-            return true
-        } else
-        {
-            const role = await Role.findOne({name: req.headers['x-role']})
-
-            // Check if role permissions array contains the required permission
-            if(Array.isArray(role.permissions))
-            {
-                for(let i = 0; i < role.permissions.length; i++)
-                {
-                    if(!role.permissions.find(p => p == permission))
-                    {
-                        return false
-                    }
+            });
+        } else {
+            // For non-CUSTOM roles, validate against the role's permissions
+            const role = await Role.findOne({ name: req.headers['x-role'] });
+            const arrPermissions = this.toArray(permission);
+            arrPermissions.forEach(p => {
+                if (!role.permissions.find(perm => perm == p)) {
+                    ret = false; // Return false if any required permission is missing
                 }
-
-                return true
-            }
-
-            if(!role.permissions.find(p => p == permission))
-            {
-                return false
-            }
+            });
         }
+        return ret;
     }
-    
-    // Generates a unique numeric ID of specified length
-    async uniqueID(n)
-    {
-        var uid = ''
-        for(let i = 0; i < n; i++)
-        {
-            uid += Math.round(Math.random() * 10)
+
+    // Generates a unique numeric ID of a specified length
+    async uniqueID(n) {
+        let uid = '';
+        // Generate a random numeric ID of length 'n'
+        for (let i = 0; i < n; i++) {
+            uid += Math.round(Math.random() * 10);
         }
-        uid = parseInt(uid)
-        const user = await User.findOne({id: uid})
-        if(user)
-        {
-            this.uniqueID(n) // Recursively generate a new ID if it already exists
-        } else
-        {
-            return uid
+        uid = parseInt(uid);
+
+        // Check if the generated ID already exists in the database
+        const user = await User.findOne({ id: uid });
+        if (user) {
+            // Recursively generate a new ID if the current one is not unique
+            return this.uniqueID(n);
+        } else {
+            return uid; // Return the unique ID
         }
     }
 
-    // Converts data to an array, ensuring consistency in handling
-    toArray(data)
-    {
-        var newData = data
+    // Converts data to an array, ensuring the input is consistent
+    toArray(data) {
+        let newData = data;
 
-        if(newData == undefined)
-        {
-            newData = []
-        } else if(!Array.isArray(newData))
-        {
-            newData = [newData]
+        if (newData == undefined) {
+            newData = []; // If data is undefined, return an empty array
+        } else if (!Array.isArray(newData)) {
+            newData = [newData]; // If data is not an array, wrap it in an array
         }
 
-        return newData
+        return newData;
     }
 
     // Assigns a role to a user based on their permissions
-    async setRole(user)
-    {
-        user.permissions = this.toArray(user.permissions) // Ensure permissions are always an array
+    async setRole(user) {
+        // Ensure the user's permissions are in array format
+        user.permissions = this.toArray(user.permissions);
 
-        if(user.role == 'CUSTOM' || user.role == undefined)
-        {
-            if(user.permissions.length == 0)
-            {
-                user.role = 'CLIENT'
-            } else
-            {
-                user.role = 'CUSTOM'
+        if (user.role == 'CUSTOM' || user.role == undefined) {
+            if (user.permissions.length == 0) {
+                user.role = 'CLIENT'; // Default to CLIENT if no permissions
+            } else {
+                user.role = 'CUSTOM'; // Otherwise, assign CUSTOM
             }
-        } else // Handle roles other than CUSTOM or undefined
-        {
-            if(user.permissions.length > 0)
-            {
-                user.permissions = [] // Ignore permissions if a predefined role is set
+        } else {
+            // If the user has a predefined role, ignore permissions
+            if (user.permissions.length > 0) {
+                user.permissions = []; // Clear permissions
             }
         }
 
-        if(user.role != 'CLIENT')
-        {
-            const role = await Role.find({name: user.role})
-            if(role.length == 0 && user.role != undefined && user.role != 'CUSTOM')
-            {
-                user.role = 'CLIENT' // Default to CLIENT if the role is invalid
+        if (user.role != 'CLIENT') {
+            // Verify the role exists, or default to CLIENT if invalid
+            const role = await Role.find({ name: user.role });
+            if (role.length == 0 && user.role != undefined && user.role != 'CUSTOM') {
+                user.role = 'CLIENT';
             }
         }
     }
 
     // Updates a user's role based on their permissions
-    async updateRole(user)
-    {
-        if(user.permissions.length == 0)
-        {
-            return 'CLIENT'
-        } else
-        {
-            const roles = await Role.find({permissions: user.permissions})
-            
-            var role = undefined
+    async updateRole(user) {
+        if (user.permissions.length == 0) {
+            return 'CLIENT'; // Assign CLIENT if no permissions
+        } else {
+            // Find roles matching the user's permissions
+            const roles = await Role.find({ permissions: user.permissions });
 
-            if(roles.length > 0)
-            {
-                role = roles[Math.round(Math.random() * (roles.length -1))].name // Randomly pick a matching role
-            } else
-            {
-                role = 'CUSTOM'
+            let role = undefined;
+
+            if (roles.length > 0) {
+                // Randomly select one of the matching roles
+                role = roles[Math.round(Math.random() * (roles.length - 1))].name;
+            } else {
+                role = 'CUSTOM'; // Default to CUSTOM if no roles match
             }
 
-            return role
+            return role;
         }
     }
 
-    // Parses a boolean value from a string or boolean input
-    parseBool(b)
-    {
-        if(b === 'true' || b == true)
-        {
-            return true
-        } else
-        {
-            return false
+    // Parses a boolean value from either a string or boolean input
+    parseBool(b) {
+        if (b === 'true' || b == true) {
+            return true; // Return true for valid boolean or "true" string
+        } else {
+            return false; // Return false otherwise
         }
     }
 
-    // Merges two arrays, ensuring unique values
-    mergeArrays(arr1, arr2)
-    {
-        var ret = []
+    // Merges two arrays, ensuring unique values (no duplicates)
+    mergeArrays(arr1, arr2) {
+        let ret = [];
 
-        if(Array.isArray(arr1) && !Array.isArray(arr2))
-        {
-            ret = arr1
-            if(!arr1.find(a => a === arr2))
-            {
-                ret.push(arr2)
+        // If one of the inputs is not an array, add it if unique
+        if (Array.isArray(arr1) && !Array.isArray(arr2)) {
+            ret = arr1;
+            if (!arr1.find(a => a === arr2)) {
+                ret.push(arr2);
             }
         }
-        if(Array.isArray(arr2) && !Array.isArray(arr1))
-        {
-            ret = arr2
-            if(!arr2.find(a => a === arr1))
-            {
-                ret.push(arr1)
+
+        if (Array.isArray(arr2) && !Array.isArray(arr1)) {
+            ret = arr2;
+            if (!arr2.find(a => a === arr1)) {
+                ret.push(arr1);
             }
         }
-        if(!Array.isArray(arr1) && !Array.isArray(arr2))
-        {
-            ret.push(arr1)
-            if(arr1 !== arr2)
-            {
-                ret.push(arr2)
+
+        // If neither input is an array, add both if unique
+        if (!Array.isArray(arr1) && !Array.isArray(arr2)) {
+            ret.push(arr1);
+            if (arr1 !== arr2) {
+                ret.push(arr2);
             }
         }
-        if(Array.isArray(arr1) && Array.isArray(arr2))
-        {
-            ret = arr1
+
+        // Merge both arrays and ensure unique values
+        if (Array.isArray(arr1) && Array.isArray(arr2)) {
+            ret = arr1;
             arr2.forEach(i => {
-                if(!ret.find(j => i === j))
-                {
-                    ret.push(i)
+                if (!ret.find(j => i === j)) {
+                    ret.push(i);
                 }
-            })
+            });
         }
 
-        return ret
+        return ret;
     }
 
-    // Computes the difference between two arrays
-    diffArrays(arr1, arr2)
-    {
-        var ret = []
+    // Computes the difference between two arrays (elements in arr1 but not in arr2)
+    diffArrays(arr1, arr2) {
+        let ret = [];
 
+        // For each element in arr1, check if it's not in arr2
         arr1.forEach(i => {
-            if(!(arr2.find(j => j == i)))
-            {
-                ret.push(i)
+            if (!(arr2.find(j => j == i))) {
+                ret.push(i); // Add unique elements to the result
             }
-        })
+        });
 
-        return ret
+        return ret;
     }
 }
 
-module.exports = new Utils()
+// Export an instance of the Utils class for use in other modules
+module.exports = new Utils();

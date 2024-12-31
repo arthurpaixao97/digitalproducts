@@ -66,7 +66,7 @@ class MW
     return async function(req, res, next)
     {
       const role = await Role.findOne({name: rolename})
-      if(u.checkPermission(req, role.permissions))
+      if(await u.checkPermission(req, role.permissions) == true)
       {
         next()
       } else
