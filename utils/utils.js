@@ -4,12 +4,14 @@ const Role = require('../db/schemas/roles.js')
 
 class Utils
 {
+    // Checks if a user has a specific permission
     async checkPermission(req, permission)
     {
         if(req.headers['x-role'] == 'CUSTOM')
         {
             const user = await User.findOne({id: req.headers['x-user']})
 
+            // Check if user permissions array contains the required permission
             if(Array.isArray(user.permissions))
             {
                 for(let i = 0; i < user.permissions.length; i++)
@@ -33,6 +35,7 @@ class Utils
         {
             const role = await Role.findOne({name: req.headers['x-role']})
 
+            // Check if role permissions array contains the required permission
             if(Array.isArray(role.permissions))
             {
                 for(let i = 0; i < role.permissions.length; i++)
@@ -53,6 +56,7 @@ class Utils
         }
     }
     
+    // Generates a unique numeric ID of specified length
     async uniqueID(n)
     {
         var uid = ''
@@ -64,13 +68,14 @@ class Utils
         const user = await User.findOne({id: uid})
         if(user)
         {
-            this.uniqueID(n)
+            this.uniqueID(n) // Recursively generate a new ID if it already exists
         } else
         {
             return uid
         }
     }
 
+    // Converts data to an array, ensuring consistency in handling
     toArray(data)
     {
         var newData = data
@@ -86,9 +91,10 @@ class Utils
         return newData
     }
 
+    // Assigns a role to a user based on their permissions
     async setRole(user)
     {
-        user.permissions = this.toArray(user.permissions) //Permissions will always be array
+        user.permissions = this.toArray(user.permissions) // Ensure permissions are always an array
 
         if(user.role == 'CUSTOM' || user.role == undefined)
         {
@@ -99,11 +105,11 @@ class Utils
             {
                 user.role = 'CUSTOM'
             }
-        } else //Some role different than CUSTOM or undefined, might be CLIENT
+        } else // Handle roles other than CUSTOM or undefined
         {
             if(user.permissions.length > 0)
             {
-                user.permissions = [] //If other roles informed, ignore permissions and keep role
+                user.permissions = [] // Ignore permissions if a predefined role is set
             }
         }
 
@@ -112,11 +118,12 @@ class Utils
             const role = await Role.find({name: user.role})
             if(role.length == 0 && user.role != undefined && user.role != 'CUSTOM')
             {
-                user.role = 'CLIENT'
+                user.role = 'CLIENT' // Default to CLIENT if the role is invalid
             }
         }
     }
 
+    // Updates a user's role based on their permissions
     async updateRole(user)
     {
         if(user.permissions.length == 0)
@@ -130,7 +137,7 @@ class Utils
 
             if(roles.length > 0)
             {
-                role = roles[Math.round(Math.random() * (roles.length -1))].name
+                role = roles[Math.round(Math.random() * (roles.length -1))].name // Randomly pick a matching role
             } else
             {
                 role = 'CUSTOM'
@@ -140,6 +147,7 @@ class Utils
         }
     }
 
+    // Parses a boolean value from a string or boolean input
     parseBool(b)
     {
         if(b === 'true' || b == true)
@@ -151,6 +159,7 @@ class Utils
         }
     }
 
+    // Merges two arrays, ensuring unique values
     mergeArrays(arr1, arr2)
     {
         var ret = []
@@ -193,6 +202,7 @@ class Utils
         return ret
     }
 
+    // Computes the difference between two arrays
     diffArrays(arr1, arr2)
     {
         var ret = []

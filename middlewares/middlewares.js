@@ -7,6 +7,7 @@ const u = require('../utils/utils.js')
 
 class MW
 {
+  // Middleware to authenticate user using cookies
   cookie_auth(req, res, next) {
     if(req)
     {
@@ -22,6 +23,7 @@ class MW
     }
   }
 
+  // Middleware to authenticate root users using a secret
   root_auth(secret){
     return function(req, res, next)
     {
@@ -39,14 +41,15 @@ class MW
     }
   }
 
+  // Middleware to authenticate users based on session tokens
   async session_auth(req, res, next)
   {
     const token = req.headers.authorization
     const session = await Session.findOne({token: token, expires: {$gte: new Date().toISOString()}})
     if(session)
     {
-      req.headers['x-role'] = session.role
-      req.headers['x-user'] = session.user
+      req.headers['x-role'] = session.role // Attach role to request headers
+      req.headers['x-user'] = session.user // Attach user ID to request headers
       next()
     } else
     {
@@ -57,6 +60,7 @@ class MW
     }
   }
 
+  // Middleware to enforce role-based permissions
   rolePermissions(rolename)
   {
     return async function(req, res, next)
@@ -75,6 +79,7 @@ class MW
     }
   }
 
+  // Middleware to enforce specific permissions
   permissions(permissions)
   {
     return async function(req, res, next)
@@ -92,6 +97,7 @@ class MW
     }
   }
 
+  // Middleware to clean up expired sessions
   async refreshSessions(req, res, next)
   {
     await Session.deleteMany({expires: {$lte: new Date()}})
