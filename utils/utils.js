@@ -2,6 +2,8 @@
 require('dotenv').config();
 // Import the User and Role models from the database schemas
 const User = require('../db/schemas/users.js');
+const Product = require('../db/schemas/products.js');
+const Offer = require('../db/schemas/offers.js');
 const Role = require('../db/schemas/roles.js');
 
 // Utility class with various helper methods for managing users, roles, and permissions
@@ -48,6 +50,42 @@ class Utils {
             return this.uniqueID(n);
         } else {
             return uid; // Return the unique ID
+        }
+    }
+
+    async uniqueProductID(n) {
+        let pid = '';
+        // Generate a random numeric ID of length 'n'
+        for (let i = 0; i < n; i++) {
+            pid += Math.round(Math.random() * 10);
+        }
+        pid = parseInt(pid);
+
+        // Check if the generated ID already exists in the database
+        const product = await Product.findOne({ id: uid });
+        if (product) {
+            // Recursively generate a new ID if the current one is not unique
+            return this.uniqueProductID(n);
+        } else {
+            return pid; // Return the unique ID
+        }
+    }
+
+    async uniqueKey(n) {
+        let k = '';
+        // Generate a random numeric Key of length 'n'
+        for (let i = 0; i < n; i++) {
+            k += Math.round(Math.random() * 10);
+        }
+        k = parseInt(k);
+
+        // Check if the generated Key already exists in the database
+        const offer = await Offer.findOne({ key: k });
+        if (offer) {
+            // Recursively generate a new Key if the current one is not unique
+            return this.uniqueKey(n);
+        } else {
+            return k; // Return the unique Key
         }
     }
 
@@ -163,16 +201,46 @@ class Utils {
 
     // Computes the difference between two arrays (elements in arr1 but not in arr2)
     diffArrays(arr1, arr2) {
-        let ret = [];
+        let ret = {
+            result1:[],
+            result2:[],
+            common:[]
+        };
 
         // For each element in arr1, check if it's not in arr2
         arr1.forEach(i => {
             if (!(arr2.find(j => j == i))) {
-                ret.push(i); // Add unique elements to the result
+                ret.result1.push(i); // Add unique elements to the result
+            } else if(!(ret.common.find(k => k == i)))
+            {
+                ret.common.push(i)
             }
-        });
+        })
+
+        // For each element in arr2, check if it's not in arr2
+        arr2.forEach(i => {
+            if (!(arr1.find(j => j == i))) {
+                ret.result2.push(i); // Add unique elements to the result
+            } else if(!(ret.common.find(k => k == i)))
+            {
+                ret.common.push(i)
+            }
+        })
 
         return ret;
+    }
+
+    restrictFields(obj, fields)
+    {
+        var validObj = {}
+        for (const key in obj) {
+            if(!fields.find(f => f == key))
+            {
+                validObj[key] = obj[key]
+            }
+        }
+
+        return validObj
     }
 }
 

@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const mw = require('../../../middlewares/middlewares.js')
 const Product = require('../../../db/schemas/products.js')
+const Offer = require('../../../db/schemas/offers.js')
 const bcrypt = require('bcrypt')
 const u = require('../../../utils/utils.js')
 
@@ -10,29 +11,60 @@ router.get('/', mw.session_auth, async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-    var product = req.body
-    
-    product.id = await u.uniqueID(7)
+    var product = req.body.product
+    var offer = req.body.offer
+
+    product = u.restrictFields(product, [
+        '_id',
+        '__v',
+        'creatorID',
+        'createdAt',
+        'status',
+        'id'
+    ])
+
+    product.status = 'DRAFT'
+    product.id = await u.uniqueProductID(7)
+    product.createdAt = new Date(Date.now()).toISOString()
+
     product = await new Product(product)
     try {
-        await product.save()
-        .then(r => {
-            res.send(r)
-        })   
+        await product.save() // Then create an offer
+        offer.productID = product.id
+        offer = u.restrictedFields(offer, [
+            '_id',
+            '__v',
+            'createdAt',
+            'status',
+            'key'
+        ])
+
+        offer.status = 'ACTIVE'
+        offer.key = await u.uniqueKey(8)
+        offer.createdAt = new Date(Date.now()).toISOString()
+
+        offer = await new Offer(offer)
+        await offer.save()
+        res.status(201).send({ product, offer })
     } catch (error) {
         res.send(error)
     }
 })
 
-router.patch('/', mw.session_auth, async (req, res) => {
+router.patch('/:id', mw.session_auth, async (req, res) => {
     var updates = {}
 
-    if(req.body.name != undefined) updates.name = req.body.name
-    if(req.body.email != undefined) updates.email = req.body.email
-    if(req.body.password != undefined) updates.password = bcrypt.hashSync(req.body.password, 10)
+    updates = u.restrictFields(updates, [
+        '_id',
+        '__v',
+        'creatorID',
+        'createdAt',
+        'status',
+        'id'
+    ])
 
     try {
-        await User.findOneAndUpdate({id: req.headers['x-user']}, updates, {new: true})
+        await Product.findOneAndUpdate({id: req.params.id}, updates, {new: true})
         .then(r => {
             res.send(r)
         })
@@ -40,5 +72,9 @@ router.patch('/', mw.session_auth, async (req, res) => {
         res.send(error)
     }
 })
+
+// Offers
+
+
 
 module.exports = router

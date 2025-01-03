@@ -59,6 +59,61 @@ router.delete('/', async (req, res) => {
     })
 })
 
+router.post('/copy/:name', async (req, res) => {
+    const role = await Role.findOne({name: req.params.name})
+    var newRole = {
+        permissions: role.permissions
+    }
+    var unique = false
+    if(!(req.body.copy_name != undefined && req.body.copy_name != '' && req.body.copy_name != null))
+    {
+        const newRoles = await Role.find({name: `${role.name}_COPY`})
+        if(newRoles.length == 0)
+        {
+            unique = true
+            newRole.name = `${role.name}_COPY`
+        }
+        var copycount = 2
+        while(unique == false)
+        {
+            const copies = await Role.find({name: `${role.name}_COPY_${copycount}`})
+            if(copies.length > 0)
+            {
+                copycount++
+            } else {
+                unique = true
+                newRole.name = `${role.name}_COPY_${copycount}`
+            }
+        }
+    } else
+    {
+        const checkName = await Role.find({name: req.body.copy_name})
+        if(checkName.length > 0)
+        {
+            res.status(400).send({
+                status:400,
+                message:'Nome da cópia já existe como Role'
+            })
+        } else
+        {
+            newRole.name = req.body.copy_name
+        }
+    }
+
+    
+    const copyRole = await new Role(newRole)
+    try {
+        await copyRole.save()
+        res.status(201).send({
+            status:201,
+            message:`Role ${role.name} copiado com sucesso para ${copyRole.name}`,
+            role: copyRole
+        })
+    } catch (error) {
+        res.status(400).send(error)
+    }
+})
+
 // **Permissions API**
 
 router.post('/:role_name/permissions/add', async (req, res) => {

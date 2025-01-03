@@ -84,7 +84,8 @@ class MW
   {
     return async function(req, res, next)
     {
-      if(u.checkPermission(req, permissions))
+      const permited = await u.checkPermission(req, permissions)
+      if(permited)
       {
         next()
       } else

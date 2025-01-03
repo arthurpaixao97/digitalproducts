@@ -13,7 +13,7 @@ DB = {
     domain: process.env.DB_DOMAIN,
     appname: process.env.DB_APPNAME
 }
-RC_SECRET = process.env.RC_SECRET // Secret for root authentication, may change
+RC_SECRET = process.env.RC_SECRET // Secret for root authentication, may change. Currently, it's defined through .env, but that's not the ideal.
 
 const app = express()
 
