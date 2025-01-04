@@ -4,10 +4,16 @@ require('dotenv').config();
 const User = require('../db/schemas/users.js');
 const Product = require('../db/schemas/products.js');
 const Offer = require('../db/schemas/offers.js');
+const Transaction = require('../db/schemas/transactions.js');
 const Role = require('../db/schemas/roles.js');
 
 // Utility class with various helper methods for managing users, roles, and permissions
 class Utils {
+
+    alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    alphabetLower = 'abcdefghijklmnopqrstuvwxyz';
+    alphabetUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    lowerandnumbers = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
     // Checks if a user or their role has a specific permission
     async checkPermission(req, permission) {
@@ -62,7 +68,7 @@ class Utils {
         pid = parseInt(pid);
 
         // Check if the generated ID already exists in the database
-        const product = await Product.findOne({ id: uid });
+        const product = await Product.findOne({ id: pid });
         if (product) {
             // Recursively generate a new ID if the current one is not unique
             return this.uniqueProductID(n);
@@ -75,9 +81,8 @@ class Utils {
         let k = '';
         // Generate a random numeric Key of length 'n'
         for (let i = 0; i < n; i++) {
-            k += Math.round(Math.random() * 10);
+            k += this.lowerandnumbers[Math.round(Math.random() * (this.lowerandnumbers.length - 1))];
         }
-        k = parseInt(k);
 
         // Check if the generated Key already exists in the database
         const offer = await Offer.findOne({ key: k });
@@ -86,6 +91,24 @@ class Utils {
             return this.uniqueKey(n);
         } else {
             return k; // Return the unique Key
+        }
+    }
+
+    async uniqueTransID(n) {
+        let tid = '';
+        // Generate a random numeric ID of length 'n'
+        for (let i = 0; i < n; i++) {
+            tid += Math.round(Math.random() * 10);
+        }
+        tid = `T${tid}`;
+
+        // Check if the generated ID already exists in the database
+        const transaction = await Transaction.findOne({ id: tid });
+        if (transaction) {
+            // Recursively generate a new ID if the current one is not unique
+            return this.uniqueTransID(n);
+        } else {
+            return tid; // Return the unique ID
         }
     }
 

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const offerSchema = new mongoose.Schema({
-    productId: {
+    productID: {
         type: Number,
         required: true
     },

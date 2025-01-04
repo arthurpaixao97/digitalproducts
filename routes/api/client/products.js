@@ -10,7 +10,7 @@ router.get('/', mw.session_auth, async (req, res) => {
     res.send(user)
 })
 
-router.post('/', async (req, res) => {
+router.post('/', mw.session_auth, async (req, res) => {
     var product = req.body.product
     var offer = req.body.offer
 
@@ -26,12 +26,16 @@ router.post('/', async (req, res) => {
     product.status = 'DRAFT'
     product.id = await u.uniqueProductID(7)
     product.createdAt = new Date(Date.now()).toISOString()
+    product.creatorID = req.headers['x-user']
 
     product = await new Product(product)
+    
     try {
+    
         await product.save() // Then create an offer
+
         offer.productID = product.id
-        offer = u.restrictedFields(offer, [
+        offer = u.restrictFields(offer, [
             '_id',
             '__v',
             'createdAt',
@@ -44,8 +48,14 @@ router.post('/', async (req, res) => {
         offer.createdAt = new Date(Date.now()).toISOString()
 
         offer = await new Offer(offer)
+        
         await offer.save()
-        res.status(201).send({ product, offer })
+
+        res.status(201).json({
+            product: product,
+            offer: offer
+        })
+        
     } catch (error) {
         res.send(error)
     }
